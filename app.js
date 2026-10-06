@@ -13405,3 +13405,4 @@ loadLibrary().then(() => {
   focusLevel = FOCUS_LEVELS.includes(library.focus) ? library.focus : 'off';
   applyFocus();
 });
+console.log('NEO renderer: loaded');

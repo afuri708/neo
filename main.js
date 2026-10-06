@@ -1416,6 +1416,7 @@ function createWindow() {
     }
   });
   win.loadFile('index.html');
+  if (!app.isPackaged) win.webContents.openDevTools();
   // The menu bar follows the real full-screen state, whoever changed it.
   // Electron only puts the bar back after a full screen it entered itself,
   // so once a window manager's own full-screen key had been used (Sway, i3),
@@ -2388,3 +2389,4 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+console.log('NEO main process: loaded');
