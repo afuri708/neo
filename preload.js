@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('neo', {
   paintCover: (bookId, text, options) => ipcRenderer.invoke('cover:paint', bookId, text, options),
   setSecret: (name, value) => ipcRenderer.invoke('secret:set', name, value),
   hasSecret: (name) => ipcRenderer.invoke('secret:has', name),
+  assistantReview: (text, options) => ipcRenderer.invoke('assistant:review', text, options),
   importFiles: (paths) => ipcRenderer.invoke('import:files', paths),
   pathForFile: (file) => webUtils.getPathForFile(file),
   fullscreenEscape: () => ipcRenderer.invoke('fullscreen:escape'),

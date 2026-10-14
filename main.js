@@ -735,6 +735,9 @@ ipcMain.handle('secret:set', (_e, name, value) => {
 
 ipcMain.handle('secret:has', (_e, name) => !!readSecret(name));
 
+// Writing assistant (fork addition)
+require('./assistant-main.js').registerAssistant(ipcMain, readSecret);
+
 // One painting at a time per book; a second request while one is running
 // simply gets the running one's answer.
 const paintJobs = new Map();

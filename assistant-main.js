@@ -1,0 +1,95 @@
+// NEO writing assistant: main-process side.
+// Receives a scene from the UI, asks the model for notes, validates them.
+
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { app } = require('electron');
+
+// Connection and model settings. MODEL changes when the tournament winner is chosen.
+const ENDPOINT = 'https://nhb-lab-macs-mac-mini.taile300f2.ts.net/v1/chat/completions';
+const MODEL = 'gemma-4-e4b-it-4bit';
+const SAMPLING = { temperature: 1.0, top_p: 0.95 };
+const MAX_TOKENS = 4096;
+const TIMEOUT_MS = 120000;
+
+// Validation rules. Keep MAX_WORDS in sync with the system prompt.
+const MAX_WORDS = 15;
+const ALLOWED_TYPES = ['sensory', 'history', 'relationship', 'question', 'wildcard'];
+
+// Pull the JSON array out of the model's reply.
+function parseNotes(raw) {
+  raw = raw.replace(/<think>[\s\S]*?<\/think>/g, '');
+  const cleaned = raw.replace(/```json|```/g, '').trim();
+  const start = cleaned.indexOf('[');
+  const end = cleaned.lastIndexOf(']');
+  if (start === -1 || end === -1) throw new Error('No notes found in the reply.');
+  return JSON.parse(cleaned.slice(start, end + 1));
+}
+
+// Keep only notes that follow the rules.
+function validate(notes, wildcardRequested) {
+  let wildcardSeen = false;
+  return notes.filter(note => {
+    if (typeof note.type !== 'string' || typeof note.text !== 'string') return false;
+    if (!ALLOWED_TYPES.includes(note.type)) return false;
+    if (note.text.trim().split(/\s+/).length > MAX_WORDS) return false;
+    if (note.type === 'wildcard') {
+      if (!wildcardRequested || wildcardSeen || !note.anchor) return false;
+      wildcardSeen = true;
+    }
+    return true;
+  });
+}
+
+// Called once from main.js at startup.
+function registerAssistant(ipcMain, readSecret) {
+  ipcMain.handle('assistant:review', async (_event, sceneText, options = {}) => {
+    const key = readSecret('omlx');
+    if (!key) return { error: 'No oMLX key is stored.' };
+
+    let system;
+    try {
+      const promptPath = path.join(app.getPath('userData'), 'assistant', 'system-prompt.txt');
+      system = await fs.readFile(promptPath, 'utf8');
+    } catch {
+      return { error: 'The system prompt file was not found.' };
+    }
+
+    const wildcard = options.wildcard === true;
+    const request = wildcard
+      ? `Review this scene. Include exactly one wildcard note in this response.\n\n${sceneText}`
+      : `Review this scene:\n\n${sceneText}`;
+
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: MAX_TOKENS,
+          ...SAMPLING,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: request },
+          ],
+        }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+
+      if (!res.ok) return { error: `The server returned HTTP ${res.status}.` };
+
+      const data = await res.json();
+      const raw = data.choices[0].message.content;
+      const parsed = parseNotes(raw);
+      const notes = validate(parsed, wildcard);
+      return { notes, dropped: parsed.length - notes.length };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
+}
+
+module.exports = { registerAssistant };
