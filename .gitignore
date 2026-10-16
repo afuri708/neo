@@ -29,3 +29,5 @@ pocket/www/dict/
 # working files beside the repo, never part of it
 Claude outputs/
 docs/sessions/
+# Generated on build, not useful outside
+assistant-ui-build/

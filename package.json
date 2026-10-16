@@ -19,7 +19,9 @@
     "package:mac": "electron-builder --mac",
     "package:win": "electron-builder --win",
     "package:linux": "electron-builder --linux",
-    "package:all": "electron-builder --mac --win --linux"
+    "package:all": "electron-builder --mac --win --linux",
+    "build:assistant": "vite build",
+    "watch:assistant": "vite build --watch"
   },
   "build": {
     "appId": "com.hughhowey.neo",
@@ -135,9 +137,12 @@
   "author": "Hugh Howey",
   "license": "MIT",
   "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "electron": "^43.0.0",
     "electron-builder": "^26.15.3",
-    "oxlint": "^1.86.0"
+    "oxlint": "^1.86.0",
+    "svelte": "^5.57.2",
+    "vite": "^8.3.4"
   },
   "dependencies": {
     "@farscrl/hunspell-wasm": "1.0.1",
@@ -159,6 +164,12 @@
     "koffi": "2.16.3"
   },
   "allowScripts": {
-    "electron@33.4.11": true
+    "electron@33.4.11": true,
+    "svelte@5.57.2": true,
+    "vite@8.3.4": true,
+    "@sveltejs/vite-plugin-svelte@7.3.1": true,
+    "electron-winstaller@5.4.0": true,
+    "fsevents@2.3.3": true,
+    "koffi@2.16.3": true
   }
 }
