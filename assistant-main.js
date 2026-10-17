@@ -8,7 +8,7 @@ const { app } = require('electron');
 // Connection and model settings. MODEL changes when the tournament winner is chosen.
 const ENDPOINT = 'https://nhb-lab-macs-mac-mini.taile300f2.ts.net/v1/chat/completions';
 const MODEL = 'gemma-4-e4b-it-4bit';
-const SAMPLING = { temperature: 1.0, top_p: 0.95 };
+const SAMPLING = '';
 const MAX_TOKENS = 4096;
 const TIMEOUT_MS = 120000;
 
