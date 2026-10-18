@@ -6175,16 +6175,17 @@ function scriptTile(el, meta) {
 /*  PLACEHOLDERS + STICKIES                                            */
 /* ================================================================== */
 
-function insertPlaceholder() {
+// Added parameter text, retun null on both exits, and if statement to pass from assistant
+function insertPlaceholder(text='') {
   const sel = window.getSelection();
-  if (!sel.rangeCount) return;
+  if (!sel.rangeCount) return null;
   // derive the chapter from where the caret actually is:
   let el = sel.anchorNode;
   if (el && el.nodeType === Node.TEXT_NODE) el = el.parentElement;
   const bodyEl = el && el.closest ? el.closest('.chapter-body') : null;
   if (!bodyEl) {
     toast(t('Click into a chapter first, then {key} drops a placeholder', { key: KPH }));
-    return;
+    return null;
   }
   currentChapterId = bodyEl.closest('.chapter').dataset.id;
   const sid = 's-' + Date.now().toString(36);
@@ -6204,7 +6205,7 @@ function insertPlaceholder() {
   sel.removeAllRanges();
   sel.addRange(range);
 
-  stickies.push({ id: sid, chapterId: currentChapterId, text: '', resolved: false });
+  stickies.push({ id: sid, chapterId: currentChapterId, text, resolved: false });
   window.neo.writeJSON(book.id, 'stickies', stickies);
   chapterHTML[currentChapterId] = captureBody(document.querySelector(
     `.chapter[data-id="${currentChapterId}"] .chapter-body`
@@ -6212,11 +6213,15 @@ function insertPlaceholder() {
   scheduleChapterSave(currentChapterId);
   renderStickies();
   scheduleNavRefresh();
+  if (!text) {
   // the caret lands in the note: type what needs doing, Enter brings you
   // back to the page just past the flag (Shift+Enter for another line)
   const pane = $('#side-pane');
   pane.dataset.autoOpened = pane.classList.contains('open') ? '0' : '1';
-  focusSticky(sid);
+
+    focusSticky(sid);
+  }
+  return sid;
 }
 
 // Back to the manuscript, caret just past the flag. Scrolls only when the

@@ -1,4 +1,5 @@
 <script>
+    import { fly } from "svelte/transition";
     let notes = $state([]);
     let loading = $state(false);
     let error = $state("");
@@ -23,11 +24,24 @@
             if (result.error) {
                 error = result.error;
             } else {
-                notes = result.notes.map(note => ({id: crypto.randomUUID(), ...note}));
-                console.log(notes)
+                notes = result.notes.map((note) => ({
+                    id: crypto.randomUUID(),
+                    ...note,
+                }));
             }
         } finally {
             loading = false;
+        }
+    }
+    function dismiss(id) {
+        notes = notes.filter((note) => note.id !== id);
+    }
+    function keep(note) {
+        const sid = window.insertPlaceholder(note.text);
+        if (sid) {
+            notes = notes.map((item) =>
+                note.id === item.id ? { ...item, kept: true } : item,
+            );
         }
     }
 </script>
@@ -35,21 +49,27 @@
 <div class="assistant-window">
     <h3>Unnamed Assistant</h3>
 
-    <p>Highlight text and click "Review" to get some notes!<p>
+    <p>Highlight text and click "Review" to get some notes!</p>
 
     <button onclick={review} disabled={loading}>
         {loading ? "Loading..." : "Review"}
     </button>
 
     {#if error}<p class="error-msg">{error}</p>{/if}
-    
-    {#each notes as note(id)}
-    <div class="note-card">
-        <span class="note-type">{note.type}</span>
-        <p>{note.text}</p>
-    </div>
-    {/each}
 
+    {#each notes as note (note.id)}
+        <div class="note-card" out:fly={{ x: 150, duration: 350 }}>
+            {#if note.kept}<span class="pinned">📌</span>{/if}
+            <span class="note-type">{note.type}</span>
+            <p>{note.text}</p>
+            {#if !note.kept}
+                <div class="note-actions">
+                    <button onclick={() => keep(note)}>Keep</button>
+                    <button onclick={() => dismiss(note.id)}>Dismiss</button>
+                </div>
+            {/if}
+        </div>
+    {/each}
 </div>
 
 <style>
@@ -62,13 +82,16 @@
         padding: 8px 12px;
         background-color: rgb(255, 255, 120);
         color: black;
-        opacity: 0.8;
     }
 
+    .pinned {
+        display: block;
+        text-align: center;
+    }
     .note-type {
         font-size: 1.1em;
-        color: black;
         opacity: 0.8;
+        display: block;
         text-transform: uppercase;
         border-bottom: 2px solid rgb(255, 0, 0);
     }
