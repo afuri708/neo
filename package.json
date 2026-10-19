@@ -21,7 +21,8 @@
     "package:linux": "electron-builder --linux",
     "package:all": "electron-builder --mac --win --linux",
     "build:assistant": "vite build",
-    "watch:assistant": "vite build --watch"
+    "watch:assistant": "vite build --watch",
+    "dev": "npm run build:assistant && concurrently --kill-others \"npm run watch:assistant\" \"npm start\""
   },
   "build": {
     "appId": "com.hughhowey.neo",
@@ -138,6 +139,7 @@
   "license": "MIT",
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "concurrently": "^10.0.6",
     "electron": "^43.0.0",
     "electron-builder": "^26.15.3",
     "oxlint": "^1.86.0",
