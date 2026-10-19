@@ -1,6 +1,6 @@
 // NEO writing assistant: main-process side.
 // Receives a scene from the UI, asks the model for notes, validates them.
-
+const { createHash, randomUUID } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { app } = require('electron');
@@ -85,7 +85,29 @@ function registerAssistant(ipcMain, readSecret) {
       const raw = data.choices[0].message.content;
       const parsed = parseNotes(raw);
       const notes = validate(parsed, wildcard);
-      return { notes, dropped: parsed.length - notes.length };
+      const withIDs = notes.map(note => ({ id: randomUUID(), ...note }));
+      const reviewId = randomUUID();
+      const reasoning = data.choices[0].message.reasoning_content ?? null;
+      const promptHash = createHash('sha256').update(system).digest('hex').slice(0, 12);
+      const record = {
+        kind: 'review',
+        reviewId,
+        promptHash,
+        wildcard,
+        reasoning,
+        time: new Date().toISOString(),
+        model: MODEL,
+        scene: sceneText,
+        notes: withIDs
+      };
+      const logPath = path.join(app.getPath('userData'), 'assistant', 'log.jsonl');
+      try {
+        await fs.appendFile(logPath, JSON.stringify(record) + '\n');
+      }
+      catch (err) {
+        console.error('Assistant log write failed:', err);
+      }
+      return { notes: withIDs, reviewId, dropped: parsed.length - notes.length };
     } catch (err) {
       return { error: err.message };
     }

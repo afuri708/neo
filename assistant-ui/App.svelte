@@ -5,6 +5,8 @@
     let error = $state("");
     let editingId = $state(null);
     let draft = $state("");
+    let reviewId = $state(null);
+
     async function review() {
         // Reset everything between calls
         error = "";
@@ -26,10 +28,8 @@
             if (result.error) {
                 error = result.error;
             } else {
-                notes = result.notes.map((note) => ({
-                    id: crypto.randomUUID(),
-                    ...note,
-                }));
+                notes = result.notes;
+                reviewId = result.reviewId;
             }
         } finally {
             loading = false;
