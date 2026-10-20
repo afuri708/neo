@@ -37,6 +37,11 @@
     }
     function dismiss(id) {
         notes = notes.filter((note) => note.id !== id);
+        window.neo.assistantLogAction({
+            reviewId,
+            noteId: id,
+            action: "dismiss",
+        });
     }
     function keep(note) {
         const sid = window.insertPlaceholder(note.text);
@@ -44,6 +49,11 @@
             notes = notes.map((item) =>
                 note.id === item.id ? { ...item, kept: true } : item,
             );
+            window.neo.assistantLogAction({
+                reviewId,
+                noteID: note.id,
+                action: "keep",
+            });
         }
     }
     function spark(note) {
@@ -62,6 +72,12 @@
         if (!sid) {
             return;
         }
+        window.neo.assistantLogAction({
+            reviewId,
+            noteId: note.id,
+            action: "spark",
+            edited,
+        });
         notes = notes.map((item) =>
             note.id === item.id ? { ...item, kept: true, edited } : item,
         );

@@ -4,6 +4,7 @@ const { createHash, randomUUID } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { app } = require('electron');
+const { error } = require('node:console');
 
 // Connection and model settings. MODEL changes when the tournament winner is chosen.
 const ENDPOINT = 'https://nhb-lab-macs-mac-mini.taile300f2.ts.net/v1/chat/completions';
@@ -15,6 +16,17 @@ const TIMEOUT_MS = 120000;
 // Validation rules. Keep MAX_WORDS in sync with the system prompt.
 const MAX_WORDS = 15;
 const ALLOWED_TYPES = ['sensory', 'history', 'relationship', 'question', 'wildcard'];
+
+//Logging function to write training data, review and action records. A failed write reports to the console.
+async function appendLog(record) {
+  const logPath = path.join(app.getPath('userData'), 'assistant', 'log.jsonl');
+  try {
+    await fs.appendFile(logPath, JSON.stringify(record) + '\n');
+  }
+  catch (err) {
+    console.error('Assistant log write failed:', err);
+  }
+}
 
 // Pull the JSON array out of the model's reply.
 function parseNotes(raw) {
@@ -100,17 +112,20 @@ function registerAssistant(ipcMain, readSecret) {
         scene: sceneText,
         notes: withIDs
       };
-      const logPath = path.join(app.getPath('userData'), 'assistant', 'log.jsonl');
-      try {
-        await fs.appendFile(logPath, JSON.stringify(record) + '\n');
-      }
-      catch (err) {
-        console.error('Assistant log write failed:', err);
-      }
+      await appendLog(record);
       return { notes: withIDs, reviewId, dropped: parsed.length - notes.length };
     } catch (err) {
       return { error: err.message };
     }
+  });
+  ipcMain.handle('assistant:log-action', async (_event, entry) => {
+    const allowedActions = ['keep', 'spark', 'dismiss'];
+    if (!allowedActions.includes(entry.action)) {
+      return { error: 'Action not recognized' };
+    }
+    const record = { kind: 'action', time: new Date().toISOString(), ...entry };
+    await appendLog(record);
+    return { ok: true };
   });
 }
 

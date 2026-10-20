@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('neo', {
   setSecret: (name, value) => ipcRenderer.invoke('secret:set', name, value),
   hasSecret: (name) => ipcRenderer.invoke('secret:has', name),
   assistantReview: (text, options) => ipcRenderer.invoke('assistant:review', text, options),
+  assistantLogAction: (entry) => ipcRenderer.invoke('assistant:log-action', entry),
   importFiles: (paths) => ipcRenderer.invoke('import:files', paths),
   pathForFile: (file) => webUtils.getPathForFile(file),
   fullscreenEscape: () => ipcRenderer.invoke('fullscreen:escape'),
