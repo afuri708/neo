@@ -6,16 +6,18 @@ const path = require('node:path');
 const { app } = require('electron');
 const { error } = require('node:console');
 
-// Connection and model settings. MODEL changes when the tournament winner is chosen.
-const ENDPOINT = 'https://nhb-lab-macs-mac-mini.taile300f2.ts.net/v1/chat/completions';
-const MODEL = 'gemma-4-e4b-it-4bit';
-const SAMPLING = '';
-const MAX_TOKENS = 4096;
-const TIMEOUT_MS = 120000;
+// Connection and model settings. model changes when the tournament winner is chosen.
+const endpoint = 'https://nhb-lab-macs-mac-mini.taile300f2.ts.net/v1/chat/completions';
+const model = 'gemma-4-e4b-it-4bit';
+const sampling = '';
+const maxTokens = 16384;
+const timeoutMs = 120000;
+const defaultSettings = { minNotes: 3, maxNotes: 6 };
+const maxNotesCap = 6;
 
-// Validation rules. Keep MAX_WORDS in sync with the system prompt.
-const MAX_WORDS = 15;
-const ALLOWED_TYPES = ['sensory', 'history', 'relationship', 'question', 'wildcard'];
+// Validation rules. Keep maxWords in sync with the system prompt.
+const maxWords = 15;
+const allowedTypes = ['sensory', 'history', 'relationship', 'question', 'wildcard'];
 
 //Logging function to write training data, review and action records. A failed write reports to the console.
 async function appendLog(record) {
@@ -26,6 +28,23 @@ async function appendLog(record) {
   catch (err) {
     console.error('Assistant log write failed:', err);
   }
+}
+
+async function readSettings() {
+  const settingsPath = path.join(app.getPath('userData'), 'assistant', 'settings.json');
+  try {
+    const settingsText = await fs.readFile(settingsPath, 'utf8');
+    const parsedSettings = JSON.parse(settingsText);
+    return { ...defaultSettings, ...parsedSettings };
+  }
+  catch {
+    return { ...defaultSettings };
+  }
+}
+
+async function writeSettings(settings) {
+  const settingsPath = path.join(app.getPath('userData'), 'assistant', 'settings.json');
+  await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
 }
 
 // Pull the JSON array out of the model's reply.
@@ -44,8 +63,8 @@ function validate(notes, wildcardRequested) {
   let wildcardSeen = false;
   return notes.filter(note => {
     if (typeof note.type !== 'string' || typeof note.text !== 'string') return false;
-    if (!ALLOWED_TYPES.includes(note.type)) return false;
-    if (note.text.trim().split(/\s+/).length > MAX_WORDS) return false;
+    if (!allowedTypes.includes(note.type)) return false;
+    if (note.text.trim().split(/\s+/).length > maxWords) return false;
     if (note.type === 'wildcard') {
       if (!wildcardRequested || wildcardSeen || !note.anchor) return false;
       wildcardSeen = true;
@@ -74,22 +93,22 @@ function registerAssistant(ipcMain, readSecret) {
       : `Review this scene:\n\n${sceneText}`;
 
     try {
-      const res = await fetch(ENDPOINT, {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${key}`,
         },
         body: JSON.stringify({
-          model: MODEL,
-          max_tokens: MAX_TOKENS,
-          ...SAMPLING,
+          model: model,
+          maxTokens: maxTokens,
+          ...sampling,
           messages: [
             { role: 'system', content: system },
             { role: 'user', content: request },
           ],
         }),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
       });
 
       if (!res.ok) return { error: `The server returned HTTP ${res.status}.` };
@@ -109,7 +128,7 @@ function registerAssistant(ipcMain, readSecret) {
         wildcard,
         reasoning,
         time: new Date().toISOString(),
-        model: MODEL,
+        model: model,
         scene: sceneText,
         notes: withIDs
       };
@@ -127,6 +146,33 @@ function registerAssistant(ipcMain, readSecret) {
     const record = { kind: 'action', time: new Date().toISOString(), ...entry };
     await appendLog(record);
     return { ok: true };
+  });
+  ipcMain.handle('assistant:get-settings', async (_event) => {
+    return await readSettings();
+  });
+  ipcMain.handle('assistant:set-settings', async (_event, incoming) => {
+    const incomingMin = incoming.minNotes;
+    const incomingMax = incoming.maxNotes;
+    if (!Number.isInteger(incoming.minNotes) || !Number.isInteger(incoming.maxNotes)) {
+      return { error: "Notes qty not a number!" };
+    }
+    if (incomingMin < 1) {
+      return { error: "Cannot have 0 notes!" };
+    }
+    if (incomingMax > maxNotesCap) {
+      return { error: `Too many notes! Cap is ${maxNotesCap}` };
+    }
+    if (incomingMin > incomingMax) {
+      return { error: "Minumum cannot be greater than maximum!" };
+    }
+    const updated = { ...(await readSettings), minNotes: incomingMin, maxNotes: incomingMax };
+    try {
+      await writeSettings(updated);
+      return { ok: true };
+    }
+    catch (err) {
+      return { error: `Could not save settings, Error: ${err.message}` };
+    }
   });
 }
 
