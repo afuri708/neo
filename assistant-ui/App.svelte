@@ -1,11 +1,14 @@
 <script>
     import { fly } from "svelte/transition";
+    import Settings from './Settings.svelte';
     let notes = $state([]);
     let loading = $state(false);
     let error = $state("");
     let editingId = $state(null);
     let draft = $state("");
     let reviewId = $state(null);
+    let wildcard = $state(false);
+    let showSettings = $state(false);
 
     async function review() {
         // Reset everything between calls
@@ -13,7 +16,6 @@
 
         // Reads the selected text.
         const text = window.getSelection().toString().trim();
-
         if (!text) {
             error = "No text selected! Please select some text and try again!";
             return;
@@ -22,7 +24,7 @@
         notes = [];
         try {
             // Pauses the function until the model responds
-            const result = await window.neo.assistantReview(text);
+            const result = await window.neo.assistantReview(text, { wildcard });
 
             // Writes the model reply to either error, or the notes array, depending on what happens
             if (result.error) {
@@ -89,17 +91,32 @@
     <h3>Unnamed Assistant</h3>
 
     <p>Highlight text and click "Review" to get some notes!</p>
-
-    <button onclick={review} disabled={loading}>
+    <button class="settings-gear" onclick={() => (showSettings=!showSettings)}>
+        ⚙
+    </button>
+    <button class="review-button" onclick={review} disabled={loading}>
         {loading ? "Loading..." : "Review"}
     </button>
 
+    {#if showSettings}
+            <Settings/>
+    {/if}
+
+    <label>
+        <input
+            class="wildcard-toggle"
+            type="checkbox"
+            bind:checked={wildcard}
+        />
+        Include a wildcard
+    </label>
     {#if error}<p class="error-msg">{error}</p>{/if}
 
     {#each notes as note (note.id)}
-        <div class="note-card" out:fly={{ x: 150, duration: 350 }}>
+        <div class="note-card" out:fly={{ x: 150, duration: 350 }} class:wildcard={note.type==='wildcard'}>
             {#if note.kept}<span class="pinned">📌</span>{/if}
             <span class="note-type">{note.type}</span>
+
             {#if editingId === note.id}
                 <textarea bind:value={draft}></textarea>
                 <div class="note-actions">
@@ -108,6 +125,10 @@
                 </div>
             {:else}
                 <p>{note.edited ?? note.text}</p>
+                {#if note.anchor}
+                    <p class="wildcard-anchor">Anchor: {note.anchor}</p>
+                {/if}
+
                 {#if !note.kept}
                     <div class="note-actions">
                         <button onclick={() => keep(note)}>Keep</button>
@@ -132,7 +153,16 @@
         background-color: rgb(223, 223, 192);
         color: black;
     }
+    
+    .wildcard {
+        background-color: darkred;
+        color: whitesmoke;
+    }
 
+    .wildcard-anchor {
+        font-size: 0.75em;
+        opacity: 0.7;
+    }
     .pinned {
         display: block;
         text-align: center;

@@ -31,6 +31,7 @@ async function appendLog(record) {
 // Pull the JSON array out of the model's reply.
 function parseNotes(raw) {
   raw = raw.replace(/<think>[\s\S]*?<\/think>/g, '');
+  console.log(raw);
   const cleaned = raw.replace(/```json|```/g, '').trim();
   const start = cleaned.indexOf('[');
   const end = cleaned.lastIndexOf(']');
