@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('neo', {
   assistantLogAction: (entry) => ipcRenderer.invoke('assistant:log-action', entry),
   assistantGetSettings: () => ipcRenderer.invoke('assistant:get-settings'),
   assistantSetSettings: (settings) => ipcRenderer.invoke('assistant:set-settings', settings),
+  assistantGetPrompt: () => ipcRenderer.invoke('assistant:get-prompt'),
+  assistantSetPrompt: (text) => ipcRenderer.invoke('assistant:set-prompt', text),
   importFiles: (paths) => ipcRenderer.invoke('import:files', paths),
   pathForFile: (file) => webUtils.getPathForFile(file),
   fullscreenEscape: () => ipcRenderer.invoke('fullscreen:escape'),

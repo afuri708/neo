@@ -19,10 +19,19 @@ const maxNotesCap = 6;
 const maxWords = 15;
 const allowedTypes = ['sensory', 'history', 'relationship', 'question', 'wildcard'];
 
+function promptPath() {
+  return path.join(app.getPath('userData'), 'assistant', 'system-prompt.txt');
+}
+
+async function ensureAssistantDir() {
+  await fs.mkdir(path.join(app.getPath('userData'), 'assistant'), { recursive: true });
+}
+
 //Logging function to write training data, review and action records. A failed write reports to the console.
 async function appendLog(record) {
   const logPath = path.join(app.getPath('userData'), 'assistant', 'log.jsonl');
   try {
+    await ensureAssistantDir();
     await fs.appendFile(logPath, JSON.stringify(record) + '\n');
   }
   catch (err) {
@@ -43,6 +52,7 @@ async function readSettings() {
 }
 
 async function writeSettings(settings) {
+  await ensureAssistantDir();
   const settingsPath = path.join(app.getPath('userData'), 'assistant', 'settings.json');
   await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
 }
@@ -81,8 +91,7 @@ function registerAssistant(ipcMain, readSecret) {
 
     let system;
     try {
-      const promptPath = path.join(app.getPath('userData'), 'assistant', 'system-prompt.txt');
-      system = await fs.readFile(promptPath, 'utf8');
+      system = await fs.readFile(promptPath(), 'utf8');
     } catch {
       return { error: 'The system prompt file was not found.' };
     }
@@ -172,6 +181,32 @@ function registerAssistant(ipcMain, readSecret) {
     }
     catch (err) {
       return { error: `Could not save settings, Error: ${err.message}` };
+    }
+  });
+  ipcMain.handle('assistant:get-prompt', async (_event) => {
+    try {
+      const text = await fs.readFile(promptPath(), 'utf8');
+      return { text };
+    }
+    catch {
+      return { text: '' };
+    }
+  });
+  ipcMain.handle('assistant:set-prompt', async (_event, text) => {
+    if (typeof text !== 'string') {
+      return { error: 'Prompt is not a string...' };
+    }
+    const normalized = text.replace(/\r\n/g, '\n').trimEnd();
+    if (normalized === '') {
+      return { error: 'Prompt is empty...' };
+    }
+    try {
+      await ensureAssistantDir();
+      await fs.writeFile(promptPath(), normalized);
+      return { ok: true };
+    }
+    catch (err) {
+      return { error: `COuld not save prompt, ${err.message}` };
     }
   });
 }
