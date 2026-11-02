@@ -24,8 +24,8 @@
     "watch:assistant": "vite build --watch",
     "dev": "npm run build:assistant && concurrently --kill-others \"npm run watch:assistant\" \"npm start\"",
     "package:nova": "npm run build:assistant && electron-builder --mac --arm64 --publish never -c.publish.owner=afuri708/neo -c.mac.identity=null -c.mac.notarize=false",
-    "package:nova-win": "npm run build:assistant && electron-builder --win --publish-never",
-    "package:nova-lx": "npm run build:assistant && electron-builder --linux --publish-never"
+    "package:nova-win": "npm run build:assistant && electron-builder --win --publish never",
+    "package:nova-lx": "npm run build:assistant && electron-builder --linux --publish never"
   },
   "build": {
     "appId": "com.hughhowey.neo",
