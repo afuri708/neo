@@ -39,23 +39,18 @@
     }
     function dismiss(id) {
         notes = notes.filter((note) => note.id !== id);
-        window.neo.assistantLogAction({
-            reviewId,
-            noteId: id,
-            action: "dismiss",
-        });
+        logAction(id, 'dismiss');
+    }
+    function logAction(noteId, action, edited=null) {
+        window.neo.assistantLogAction({reviewId, noteId, action, edited});
     }
     function keep(note) {
-        const sid = window.insertPlaceholder(note.text, 'nova');
+        const sid = window.insertPlaceholder(note.text, "nova");
         if (sid) {
             notes = notes.map((item) =>
                 note.id === item.id ? { ...item, kept: true } : item,
             );
-            window.neo.assistantLogAction({
-                reviewId,
-                noteID: note.id,
-                action: "keep",
-            });
+            logAction(note.id, 'keep');
         }
     }
     function spark(note) {
@@ -70,16 +65,11 @@
         if (!edited) {
             return;
         }
-        const sid = window.insertPlaceholder(edited, 'nova');
+        const sid = window.insertPlaceholder(edited, "nova");
         if (!sid) {
             return;
         }
-        window.neo.assistantLogAction({
-            reviewId,
-            noteId: note.id,
-            action: "spark",
-            edited,
-        });
+        logAction(note.id, 'spark', edited);
         notes = notes.map((item) =>
             note.id === item.id ? { ...item, kept: true, edited } : item,
         );
@@ -97,9 +87,7 @@
                 width="124"
                 height="32"
                 role="img"
-                aria-labelledby="nova-logo-title"
-                xmlns:c2pa="http://c2pa.org/manifest"
-                ><metadata><c2pa:manifest></c2pa:manifest></metadata>
+                aria-labelledby="nova-logo-title">
                 <title id="nova-logo-title">Nova</title>
                 <defs>
                     <linearGradient
@@ -205,11 +193,35 @@
             out:fly={{ x: 150, duration: 350 }}
             class:wildcard={note.type === "wildcard"}
         >
-            {#if note.kept}<span class="pinned">📌</span>{/if}
+            {#if note.kept}<span class="pinned"
+                    ><svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        width="24"
+                        height="24"
+                        role="img"
+                        aria-label="Kept"
+                        >
+                        <path
+                            d="M9 3h6l-1 6 4 4H6l4-4z"
+                            fill="currentColor"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            d="M12 13v8"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                        />
+                    </svg></span
+                >{/if}
             <span class="note-type">{note.type}</span>
 
             {#if editingId === note.id}
-                <textarea  class="spark-editor" bind:value={draft}></textarea>
+                <textarea class="spark-editor" bind:value={draft}></textarea>
                 <div class="note-actions">
                     <button class="note-button" onclick={() => place(note)}
                         >Place</button
@@ -287,26 +299,27 @@
     :global(body.light) .assistant-window {
         --button-bg: #e4e0d7;
         --button-ink: #2b2926;
-        --button-shadow: rgba(0,0,0,0.15);
+        --button-shadow: rgba(0, 0, 0, 0.15);
         --section-bg: #fbfaf8;
         --input-bg: #ffffff;
         --input-border: #d6d2c8;
         --success: #3d7a46;
         --nova-trail-head: #f0b46a;
         --nova-trail-mid: #d9622f;
-        --card-shadow: rgba(0,0,0,0.18);
+        --card-shadow: rgba(0, 0, 0, 0.18);
     }
 
     /* FONTS */
 
     @font-face {
         font-family: "NOVA kalam";
-        src: url('assistant-fonts/kalam-latin-400-normal.woff2') format('woff2');
+        src: url("assistant-fonts/kalam-latin-400-normal.woff2") format("woff2");
         font-weight: 400;
     }
     @font-face {
         font-family: "NOVA oxanium";
-        src: url('assistant-fonts/oxanium-latin-800-normal.woff2') format('woff2');
+        src: url("assistant-fonts/oxanium-latin-800-normal.woff2")
+            format("woff2");
         font-weight: 800;
     }
 
@@ -430,6 +443,7 @@
     /* NOTE CARDS */
 
     .note-card {
+        position: relative;
         margin-bottom: 8px;
         padding: 8px 12px;
         border-radius: 10px;
@@ -439,8 +453,17 @@
     }
 
     .pinned {
-        display: block;
-        text-align: center;
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: var(--pin);
+        line-height: 0;
+    }
+    .pinned svg {
+        width: 24px;
+        height: 24px;
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
     }
 
     .note-type {
@@ -539,7 +562,7 @@
         padding-right: 32px;
     }
     :global(.nova-sticky::after) {
-        content: '';
+        content: "";
         position: absolute;
         top: 10px;
         right: 10px;

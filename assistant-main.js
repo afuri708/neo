@@ -130,6 +130,18 @@ function registerAssistant(ipcMain, readSecret) {
       const reviewId = randomUUID();
       const reasoning = data.choices[0].message.reasoning_content ?? null;
       const promptHash = createHash('sha256').update(system).digest('hex').slice(0, 12);
+      const promptsDir = path.join(app.getPath('userData'), 'assistant', 'prompts');
+      const promptFile = path.join(promptsDir, `${promptHash}.txt`);
+      try {
+        await fs.mkdir(promptsDir, { recursive: true });
+        await fs.writeFile(promptFile, system, { flag: 'wx' });
+      }
+      catch (err) {
+        const code = err.code
+        if (code !== 'EEXIST') {
+          console.error(`Could not save prompt version ${code}`, err);
+        }
+      }
       const record = {
         kind: 'review',
         reviewId,
@@ -139,7 +151,8 @@ function registerAssistant(ipcMain, readSecret) {
         time: new Date().toISOString(),
         model: model,
         scene: sceneText,
-        notes: withIDs
+        notes: withIDs,
+        userMessage: request
       };
       await appendLog(record);
       return { notes: withIDs, reviewId, dropped: parsed.length - notes.length };
