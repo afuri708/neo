@@ -6175,8 +6175,8 @@ function scriptTile(el, meta) {
 /*  PLACEHOLDERS + STICKIES                                            */
 /* ================================================================== */
 
-// Added parameter text, retun null on both exits, and if statement to pass from assistant
-function insertPlaceholder(text='') {
+// Added parameter text, return null on both exits, and if statement to pass from assistant, added source for visual clarity on assistant notes
+function insertPlaceholder(text='', source=null) {
   const sel = window.getSelection();
   if (!sel.rangeCount) return null;
   // derive the chapter from where the caret actually is:
@@ -6205,7 +6205,7 @@ function insertPlaceholder(text='') {
   sel.removeAllRanges();
   sel.addRange(range);
 
-  stickies.push({ id: sid, chapterId: currentChapterId, text, resolved: false });
+  stickies.push({ id: sid, chapterId: currentChapterId, text, resolved: false, source });
   window.neo.writeJSON(book.id, 'stickies', stickies);
   chapterHTML[currentChapterId] = captureBody(document.querySelector(
     `.chapter[data-id="${currentChapterId}"] .chapter-body`
@@ -6261,6 +6261,10 @@ function renderStickies() {
     const chIdx = book.chapterOrder.indexOf(s.chapterId);
     const el = document.createElement('div');
     el.className = 'sticky unresolved';
+    // Add a new class to stickies created by the assistant
+    if(s.source==='nova') {
+      el.classList.add('nova-sticky');
+    }
     el.dataset.sid = s.id;
     el.innerHTML = `
       <div class="s-ch">${chIdx >= 0 ? chapterName(s.chapterId) : t('Unplaced')}</div>

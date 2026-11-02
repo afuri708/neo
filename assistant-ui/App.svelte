@@ -46,7 +46,7 @@
         });
     }
     function keep(note) {
-        const sid = window.insertPlaceholder(note.text);
+        const sid = window.insertPlaceholder(note.text, 'nova');
         if (sid) {
             notes = notes.map((item) =>
                 note.id === item.id ? { ...item, kept: true } : item,
@@ -70,7 +70,7 @@
         if (!edited) {
             return;
         }
-        const sid = window.insertPlaceholder(edited);
+        const sid = window.insertPlaceholder(edited, 'nova');
         if (!sid) {
             return;
         }
@@ -89,7 +89,78 @@
 
 <div class="assistant-window">
     <div class="header">
-        <h3>Unnamed Assistant</h3>
+        <h3>
+            <svg
+                class="nova-logo"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 124 32"
+                width="124"
+                height="32"
+                role="img"
+                aria-labelledby="nova-logo-title"
+                xmlns:c2pa="http://c2pa.org/manifest"
+                ><metadata><c2pa:manifest></c2pa:manifest></metadata>
+                <title id="nova-logo-title">Nova</title>
+                <defs>
+                    <linearGradient
+                        id="nova-logo-trail"
+                        gradientUnits="userSpaceOnUse"
+                        x1="29.5"
+                        y1="2.5"
+                        x2="3"
+                        y2="18.5"
+                    >
+                        <stop
+                            offset="0"
+                            style="stop-color: var(--nova-trail-head, #fff4dc)"
+                        />
+                        <stop
+                            offset="0.35"
+                            style="stop-color: var(--nova-trail-mid, #f0b46a)"
+                        />
+                        <stop
+                            offset="1"
+                            style="stop-color: var(--nova-trail-tail, #c0392b)"
+                        />
+                    </linearGradient>
+                    <mask
+                        id="nova-logo-cut"
+                        maskUnits="userSpaceOnUse"
+                        x="0"
+                        y="0"
+                        width="32"
+                        height="32"
+                    >
+                        <rect width="32" height="32" fill="#ffffff" />
+                        <path
+                            d="M29.5 2.5L5.6 20.6C3.2 22.4 0.6 18.2 2.4 15.4Z"
+                            fill="#000000"
+                            stroke="#000000"
+                            stroke-width="2.4"
+                            stroke-linejoin="round"
+                        />
+                    </mask>
+                </defs>
+                <path
+                    d="M16 2C17 11 21 15 30 16C21 17 17 21 16 30C15 21 11 17 2 16C11 15 15 11 16 2Z"
+                    style="fill: var(--accent, #c9a86a)"
+                    mask="url(#nova-logo-cut)"
+                />
+                <path
+                    d="M29.5 2.5L5.6 20.6C3.2 22.4 0.6 18.2 2.4 15.4Z"
+                    fill="url(#nova-logo-trail)"
+                />
+                <text
+                    x="39"
+                    y="23.5"
+                    font-family=" NOVA oxanium, 'Arial Black', sans-serif"
+                    font-weight="800"
+                    font-size="21"
+                    letter-spacing="1.5"
+                    fill="currentColor">NOVA</text
+                >
+            </svg>
+        </h3>
         <p class="main-instruction">
             Highlight text and click "Review" to get some notes!
         </p>
@@ -106,6 +177,9 @@
             onclick={review}
             disabled={loading}
         >
+            {#if loading}
+                <span class="spinner"></span>
+            {/if}
             {loading ? "Loading..." : "Review"}
         </button>
     </div>
@@ -117,8 +191,14 @@
         <input type="checkbox" bind:checked={wildcard} />
         Include a wildcard
     </label>
-    {#if error}<p class="error-msg">{error}</p>{/if}
-
+    {#if error}
+        <p class="error-msg">{error}</p>
+    {/if}
+    {#if loading}
+        <div class="loading-area">
+            <span class="spinner spinner-large" role="status"> </span>
+        </div>
+    {/if}
     {#each notes as note (note.id)}
         <div
             class="note-card"
@@ -129,7 +209,7 @@
             <span class="note-type">{note.type}</span>
 
             {#if editingId === note.id}
-                <textarea bind:value={draft}></textarea>
+                <textarea  class="spark-editor" bind:value={draft}></textarea>
                 <div class="note-actions">
                     <button class="note-button" onclick={() => place(note)}
                         >Place</button
@@ -167,6 +247,11 @@
     /* PALETTE */
 
     .assistant-window {
+        /* Logo */
+        --nova-trail-head: #fff4dc;
+        --nova-trail-mid: #f0b46a;
+        --nova-trail-tail: #c0392b;
+
         /* Cards */
         --card-bg: #efe6c8;
         --card-ink: #27221f;
@@ -197,6 +282,19 @@
         --success: #9fd3a6;
     }
 
+    /* FONTS */
+
+    @font-face {
+        font-family: "NOVA kalam";
+        src: url('assistant-fonts/kalam-latin-400-normal.woff2') format('woff2');
+        font-weight: 400;
+    }
+    @font-face {
+        font-family: "NOVA oxanium";
+        src: url('assistant-fonts/oxanium-latin-800-normal.woff2') format('woff2');
+        font-weight: 800;
+    }
+
     /* PANEL LAYOUT */
 
     .assistant-window {
@@ -210,12 +308,15 @@
     .header {
         margin: 0;
     }
-
+    .nova-logo {
+        height: 28px;
+        width: auto;
+    }
     .main-instruction {
         color: var(--muted);
     }
 
-    .panel-header {
+    .review-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -224,7 +325,7 @@
 
     /* PANEL BUTTONS */
 
-    .ui-button {
+    .assistant-window :global(.ui-button) {
         background-color: var(--button-bg);
         color: var(--button-ink);
         border: none;
@@ -232,11 +333,11 @@
         box-shadow: 0 2px 6px var(--button-shadow);
     }
 
-    .ui-button:hover:not(:disabled) {
+    .assistant-window :global(.ui-button:hover:not(:disabled)) {
         box-shadow: 0 3px 6px var(--button-shadow);
     }
 
-    .ui-button:active:not(:disabled) {
+    .assistant-window :global(.ui-button:active:not(:disabled)) {
         box-shadow: 0 1px 2px var(--button-shadow);
         transform: translateY(1px);
     }
@@ -254,18 +355,61 @@
         height: 44px;
         font-size: 15px;
         font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .main-instruction {
+        margin: 0;
+    }
+
+    /* MESSAGES */
+
+    .assistant-window :global(.error-msg) {
+        color: var(--red);
+    }
+
+    /* LOADING */
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .spinner {
+            animation-duration: 3s;
+        }
+    }
+    .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--muted);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+    }
+    .spinner-large {
+        width: 36px;
+        height: 36px;
+        border-width: 3px;
+    }
+    .loading-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 24px;
+        border: 1px dashed var(--muted);
+        border-radius: 10px;
+        color: var(--muted);
     }
 
     /* WILDCARD TOGGLE */
 
     .wildcard-toggle {
         accent-color: var(--red);
-    }
-
-    /* MESSAGES */
-
-    .error-msg {
-        color: var(--red);
     }
 
     /* NOTE CARDS */
@@ -296,12 +440,18 @@
 
     /* Ruled lines: the 28px stripe must match line-height */
     .note-text {
+        font-family: "NOVA kalam", cursive;
+        font-size: 19px;
         line-height: 28px;
         background-image: repeating-linear-gradient(
             to bottom,
             transparent 0 27px,
             var(--card-rule) 27px 28px
         );
+    }
+    .spark-editor {
+        font-family: "NOVA kalam", cursive;
+        font-size: 19px;
     }
 
     /* CARD BUTTONS */
@@ -360,10 +510,28 @@
 
     /* KEYBOARD FOCUS */
 
-    .ui-button:focus-visible,
+    .assistant-window :global(.ui-button:focus-visible),
     .note-button:focus-visible,
     .wildcard-toggle:focus-visible {
         outline: 2px solid var(--accent);
         outline-offset: 2px;
+    }
+
+    /* STICKIES */
+
+    :global(.nova-sticky) {
+        position: relative;
+        padding-right: 32px;
+    }
+    :global(.nova-sticky::after) {
+        content: '';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 16px;
+        height: 16px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='t' gradientUnits='userSpaceOnUse' x1='29.5' y1='2.5' x2='3' y2='18.5'%3E%3Cstop offset='0' stop-color='%23fff4dc'/%3E%3Cstop offset='0.35' stop-color='%23f0b46a'/%3E%3Cstop offset='1' stop-color='%23c0392b'/%3E%3C/linearGradient%3E%3Cmask id='c' maskUnits='userSpaceOnUse' x='0' y='0' width='32' height='32'%3E%3Crect width='32' height='32' fill='%23fff'/%3E%3Cpath d='M29.5 2.5L5.6 20.6C3.2 22.4 0.6 18.2 2.4 15.4Z' fill='%23000' stroke='%23000' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/mask%3E%3C/defs%3E%3Cpath d='M16 2C17 11 21 15 30 16C21 17 17 21 16 30C15 21 11 17 2 16C11 15 15 11 16 2Z' fill='%23c9a86a' mask='url(%23c)'/%3E%3Cpath d='M29.5 2.5L5.6 20.6C3.2 22.4 0.6 18.2 2.4 15.4Z' fill='url(%23t)'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        pointer-events: none;
     }
 </style>
