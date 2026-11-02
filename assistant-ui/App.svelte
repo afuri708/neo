@@ -282,6 +282,21 @@
         --success: #9fd3a6;
     }
 
+    /* LIGHT MODE */
+
+    :global(body.light) .assistant-window {
+        --button-bg: #e4e0d7;
+        --button-ink: #2b2926;
+        --button-shadow: rgba(0,0,0,0.15);
+        --section-bg: #fbfaf8;
+        --input-bg: #ffffff;
+        --input-border: #d6d2c8;
+        --success: #3d7a46;
+        --nova-trail-head: #f0b46a;
+        --nova-trail-mid: #d9622f;
+        --card-shadow: rgba(0,0,0,0.18);
+    }
+
     /* FONTS */
 
     @font-face {
