@@ -7,7 +7,7 @@ const { app } = require('electron');
 const { error } = require('node:console');
 
 // Connection and model settings. model changes when the tournament winner is chosen.
-const endpoint = 'https://nhb-lab-macs-mac-mini.taile300f2.ts.net/v1/chat/completions';
+const endpoint = 'https://nhb-lab-macs-mac-mini.tailcdeb7.ts.net/v1/chat/completions';
 const model = 'gemma-4-e4b-it-4bit';
 const sampling = '';
 const maxTokens = 16384;
